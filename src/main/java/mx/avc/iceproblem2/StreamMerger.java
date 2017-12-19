@@ -13,18 +13,12 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.Optional;
 import java.util.Scanner;
-import java.util.function.Supplier;
 
 /**
  *
  * @author alexv
  */
 public class StreamMerger {
-
-    private static <T> Optional<T> orElseOptional(Optional<T> o,
-            Supplier<T> s) {
-        return o.isPresent() ? o : Optional.of(s.get());
-    }
 
     public static void streamMerger(Reader in1, Reader in2, Writer out) {
 
@@ -38,21 +32,16 @@ public class StreamMerger {
         while((prev_line1.isPresent() || scanner1.hasNextLine())
                 && (prev_line2.isPresent() || scanner2.hasNextLine())) {
 
-            Optional<String> line1 = orElseOptional(prev_line1,
-                    () -> scanner1.nextLine());
-            Optional<String> line2 = orElseOptional(prev_line2,
-                    () -> scanner2.nextLine());
+            String line1 = prev_line1.orElseGet(scanner1::nextLine);
+            String line2 = prev_line2.orElseGet(scanner2::nextLine);
 
-            int comparison = line1.flatMap(l1 -> line2.map(
-                    l2 -> l1.compareTo(l2))).get();
-
-            if(comparison <= 0) {
-                print.println(line1.get());
+            if(line1.compareTo(line2) <= 0) {
+                print.println(line1);
                 prev_line1 = Optional.empty();
-                prev_line2 = line2;
+                prev_line2 = Optional.of(line2);
             } else {
-                print.println(line2.get());
-                prev_line1 = line1;
+                print.println(line2);
+                prev_line1 = Optional.of(line1);
                 prev_line2 = Optional.empty();
             }
         }

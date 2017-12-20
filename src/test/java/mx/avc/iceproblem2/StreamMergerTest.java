@@ -11,8 +11,8 @@ package mx.avc.iceproblem2;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import static org.junit.Assert.assertEquals;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.slf4j.Logger;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -63,7 +63,6 @@ public class StreamMergerTest {
         StreamMerger.streamMerger(in1, in2, out);
 
         assertEquals(EXPECTED_VALUE, out.toString());
-
     }
 
 }

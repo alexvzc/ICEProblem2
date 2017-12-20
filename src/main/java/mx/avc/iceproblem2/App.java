@@ -10,6 +10,7 @@ package mx.avc.iceproblem2;
 
 import com.google.devtools.common.options.OptionsParser;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
@@ -77,10 +78,13 @@ public class App {
     }
 
     private static void printUsage(OptionsParser parser) {
-        System.out.println("Usage: java -jar iceproblem2.jar -i inputfile1 "
-                + "-i inputfile 2 -o outputfile");
-        System.out.println(parser.describeOptions(Collections.emptyMap(),
-                OptionsParser.HelpVerbosity.LONG));
+        PrintWriter out = System.console() != null ?
+                System.console().writer() : new PrintWriter(System.out);
+
+        out.println("Usage: java -jar iceproblem2.jar -i inputfile1 " +
+                        "-i inputfile 2 -o outputfile");
+        out.println(parser.describeOptions(Collections.emptyMap(),
+                        OptionsParser.HelpVerbosity.LONG));
     }
 
 }

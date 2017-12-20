@@ -60,7 +60,7 @@ public class StreamMergerTest {
 
         StringWriter out = new StringWriter();
 
-        StreamMerger.streamMerger(in1, in2, out);
+        StreamMerger.streamMerger(out, in1, in2);
 
         assertEquals(EXPECTED_VALUE, out.toString());
     }

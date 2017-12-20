@@ -9,7 +9,9 @@
 package mx.avc.iceproblem2;
 
 import com.google.devtools.common.options.OptionsParser;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
@@ -21,6 +23,7 @@ import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.nio.file.StandardOpenOption.WRITE;
 import java.util.Collections;
 import java.util.List;
+import static java.util.stream.Collectors.toList;
 import org.slf4j.Logger;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -31,28 +34,51 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class App {
     private static final Logger LOGGER = getLogger(App.class);
 
-    private static void processFiles(String input1, String input2,
-            String output) throws IOException {
-        Path in1 = Paths.get(input1);
-        Path in2 = Paths.get(input2);
+    private static void processFiles(List<String> inputs, String output)
+            throws IOException {
 
-        Path out = Paths.get(output);
+        List<String> unreadable = inputs.stream()
+                .filter(i -> !Files.isReadable(Paths.get(i)))
+                .collect(toList());
 
-        if(!Files.isReadable(in1)) {
-            System.out.println("Cannot read from " + input1);
+        if(!unreadable.isEmpty()) {
+            unreadable.forEach(s ->
+                    System.out.println("Cannot read from " + s));
             return;
         }
 
-        if(!Files.isReadable(in2)) {
-            System.out.println("Cannot read from " + input2);
-            return;
-        }
+        List<BufferedReader> readers = inputs.stream()
+                .map(i -> {
+                    Path p = Paths.get(i);
+                    try {
+                        return Files.newBufferedReader(p);
+                    } catch(IOException ioe) {
+                        throw new RuntimeException(ioe);
+                    }
+                })
+                .collect(toList());
 
-        try(Reader is1 = Files.newBufferedReader(in1);
-            Reader is2 = Files.newBufferedReader(in2);
-            Writer os = Files.newBufferedWriter(out, WRITE, CREATE,
-                    TRUNCATE_EXISTING)) {
-            StreamMerger.streamMerger(is1, is2, os);
+        try {
+            if(output.isEmpty()) {
+                Writer os = System.console() != null
+                        ? System.console().writer()
+                        : new OutputStreamWriter(System.out);
+                StreamMerger.streamMerger(os,
+                        readers.toArray(new Reader[readers.size()]));
+            } else {
+                try(Writer os = Files.newBufferedWriter(Paths.get(output),
+                        WRITE, CREATE, TRUNCATE_EXISTING)) {
+                    StreamMerger.streamMerger(os,
+                            readers.toArray(new Reader[readers.size()]));
+                }
+            }
+        } finally {
+            readers.forEach(r -> {
+                try {
+                    r.close();
+                } catch(IOException ioe) {
+                }
+            });
         }
     }
 
@@ -63,14 +89,13 @@ public class App {
         String outputfilename = options.getOutputFilename();
         List<String> inputfilenames = options.getInputFilenames();
 
-        if(outputfilename.isEmpty() || inputfilenames.size() != 2) {
+        if(inputfilenames.size() < 1) {
             printUsage(parser);
             return;
         }
 
         try {
-            processFiles(inputfilenames.get(0), inputfilenames.get(1),
-                    outputfilename);
+            processFiles(inputfilenames, outputfilename);
         } catch (IOException ex) {
             LOGGER.error("IOException found", ex);
             printUsage(parser);
@@ -82,7 +107,7 @@ public class App {
                 System.console().writer() : new PrintWriter(System.out);
 
         out.println("Usage: java -jar iceproblem2.jar -i inputfile1 " +
-                        "-i inputfile 2 -o outputfile");
+                        "-i inputfile 2 ... [-o outputfile]");
         out.println(parser.describeOptions(Collections.emptyMap(),
                         OptionsParser.HelpVerbosity.LONG));
     }

@@ -11,8 +11,14 @@ package mx.avc.iceproblem2;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
-import java.util.Optional;
+import static java.util.Comparator.comparing;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.PriorityQueue;
 import java.util.Scanner;
+import static java.util.stream.Collectors.toList;
+import java.util.stream.Stream;
+import static mx.avc.iceproblem2.Utils.pair;
 
 /**
  *
@@ -20,40 +26,27 @@ import java.util.Scanner;
  */
 public class StreamMerger {
 
-    public static void streamMerger(Reader in1, Reader in2, Writer out) {
+    public static void streamMerger(Writer out, Reader... in) {
+        PrintWriter print = new PrintWriter(out, true);
 
-        Scanner scanner1 = new Scanner(in1);
-        Scanner scanner2 = new Scanner(in2);
-        PrintWriter print = new PrintWriter(out);
+        List<Entry<Scanner, String>> scanners = Stream.of(in)
+                .map(i -> new Scanner(i))
+                .filter(Scanner::hasNextLine)
+                .map(s -> pair(s, s.nextLine()))
+                .collect(toList());
 
-        Optional<String> prev_line1 = Optional.empty();
-        Optional<String> prev_line2 = Optional.empty();
+        PriorityQueue<Entry<Scanner, String>> sources = new PriorityQueue<>(
+                comparing(Entry::getValue, String::compareTo));
+        sources.addAll(scanners);
 
-        while((prev_line1.isPresent() || scanner1.hasNextLine())
-                && (prev_line2.isPresent() || scanner2.hasNextLine())) {
+        while(!sources.isEmpty()) {
+            Entry<Scanner, String> top = sources.poll();
+            print.println(top.getValue());
 
-            String line1 = prev_line1.orElseGet(scanner1::nextLine);
-            String line2 = prev_line2.orElseGet(scanner2::nextLine);
-
-            if(line1.compareTo(line2) <= 0) {
-                print.println(line1);
-                prev_line1 = Optional.empty();
-                prev_line2 = Optional.of(line2);
-            } else {
-                print.println(line2);
-                prev_line1 = Optional.of(line1);
-                prev_line2 = Optional.empty();
+            Scanner s = top.getKey();
+            if(s.hasNextLine()) {
+                sources.offer(pair(s, s.nextLine()));
             }
-        }
-
-        prev_line1.ifPresent(print::println);
-        while(scanner1.hasNextLine()) {
-            print.println(scanner1.nextLine());
-        }
-
-        prev_line2.ifPresent(print::println);
-        while(scanner2.hasNextLine()) {
-            print.println(scanner2.nextLine());
         }
     }
 }
